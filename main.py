@@ -110,9 +110,9 @@ def get_args_parser():
     parser.add_argument('--no-train-mode', action='store_false', dest='train_mode')
     parser.set_defaults(train_mode=True)
     
-    parser.add_argument('--ThreeAugment', action='store_true') #3augment
+    parser.add_argument('--ThreeAugment', action='store_true')   # 3augment
     
-    parser.add_argument('--src', action='store_true') #simple random crop
+    parser.add_argument('--src', action='store_true')   # simple random crop
     
     # * Random Erase params
     parser.add_argument('--reprob', type=float, default=0.25, metavar='PCT',
@@ -269,8 +269,7 @@ def main(args):
         drop_block_rate=None,
         img_size=args.input_size
     )
-
-                    
+ 
     if args.finetune:
         if args.finetune.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -308,25 +307,31 @@ def main(args):
         model.load_state_dict(checkpoint_model, strict=False)
         
     if args.attn_only:
-        for name_p,p in model.named_parameters():
+        for name_p, p in model.named_parameters():
             if '.attn.' in name_p:
                 p.requires_grad = True
             else:
                 p.requires_grad = False
-        try:
+
+        # Try setting requires_grad for the model head
+        if hasattr(model, 'head'):
             model.head.weight.requires_grad = True
             model.head.bias.requires_grad = True
-        except:
+        elif hasattr(model, 'fc'):
             model.fc.weight.requires_grad = True
             model.fc.bias.requires_grad = True
-        try:
+
+        # Try setting requires_grad for positional embedding
+        if hasattr(model, 'pos_embed'):
             model.pos_embed.requires_grad = True
-        except:
+        else:
             print('no position encoding')
-        try:
+
+        # Try setting requires_grad for patch embedding
+        if hasattr(model, 'patch_embed'):
             for p in model.patch_embed.parameters():
                 p.requires_grad = False
-        except:
+        else:
             print('no patch embed')
             
     model.to(device)
@@ -426,7 +431,7 @@ def main(args):
             optimizer, device, epoch, loss_scaler,
             args.clip_grad, model_ema, mixup_fn,
             set_training_mode=args.train_mode,  # keep in eval mode for deit finetuning / train mode for training and deit III finetuning
-            args = args,
+            args=args,
         )
 
         lr_scheduler.step(epoch)
@@ -442,7 +447,6 @@ def main(args):
                     'scaler': loss_scaler.state_dict(),
                     'args': args,
                 }, checkpoint_path)
-             
 
         test_stats = evaluate(data_loader_val, model, device)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
@@ -468,10 +472,6 @@ def main(args):
                      **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
-        
-        
-        
-        
         if args.output_dir and utils.is_main_process():
             with (output_dir / "log.txt").open("a") as f:
                 f.write(json.dumps(log_stats) + "\n")
