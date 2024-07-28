@@ -196,10 +196,10 @@ def main(args):
     if args.distillation_type != 'none' and args.finetune and not args.eval:
         raise NotImplementedError("Finetuning with distillation not yet supported")
 
-    device = torch.device(args.device)
+    device = torch.device("cpu")
 
     # fix the seed for reproducibility
-    seed = args.seed + utils.get_rank()
+    seed = args.seed + utils.get_rank() 
     torch.manual_seed(seed)
     np.random.seed(seed)
     # random.seed(seed)
